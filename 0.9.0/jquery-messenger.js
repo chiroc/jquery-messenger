@@ -1511,24 +1511,6 @@ Messenger = (function ($) {
              */
             getMessagesId: function () {
                 return msgIndex;
-            },
-            t_togglePopupAndConsole: function (p) {
-                isPopup = p;
-                _.togglePopupAndConsole();
-            },
-            t_getVars: function () {
-                return {
-                    isPopup: isPopup,
-                    layoutPrefix: layoutPrefix,
-                    curLayout: curLayout,
-                    isBottomLayout: isBottomLayout,
-                    nextPageIndex: nextPageIndex,
-                    ticks: ticks,
-                    isInactivated: isInactivated,
-                    isPermission: isPermission,
-                    msgIndex: msgIndex,
-                    msgCache: msgCache
-                };
             }
         };
 
