@@ -1,41 +1,113 @@
-(function () {
+/**
+ * jQuery messenger is a message tools to show message box when interactive.
+ * @version 1.0
+ * @author Chiroc Cai (http://my.oschina.net/tsai)
+ * @contact 470597142@qq.com
+ * @site http://git.oschina.net/470597142/jquery-messenger
+ */
+(function ($) {
+    'use strict';
+
     if (!window.Messenger) {
         window.Messenger = {};
     }
-})();
 
-Messenger = (function ($) {
-    'use strict';
-
-    var self = Messenger,
-        settings = {
+    /**
+     * Default settings for plugin.
+     */
+    var settings = {
+            /**
+             * true - show desktop notification.
+             */
             notify: true,
+            /**
+             * desktop notification message icon prefix-url.
+             */
             notifyIconUrl: '..',
+            /**
+             * true - show message close button.
+             */
             closable: true,
+            /**
+             * true - show messenger open button at the bottom of the box when message alert.
+             */
             handle: true,
-            popupMode: true,
+            /**
+             * true - each message item will append to previous one before timeout.
+             * false - there will be only one message item at one time.
+             */
+            multiple: true,
+            /**
+             * Popup message max size for show up at one time, and it works if 'multiple' = true.
+             */
             popupSize: 5,
+            /**
+             * Messenger box layout, contains: top-left, top-center, top-right, bottom-left, bottom-center, bottom-right.
+             */
             layout: 'top-center',
+            /**
+             * The parent element object for messenger box.
+             */
             target: 'body',
+            /**
+             * The width of the messenger box. Full width is '100%'.
+             */
             width: 800,
+            /**
+             * The milliseconds for message closing. Default '0' timeout is calculate by text length.
+             */
             timeout: 0,
+            /**
+             * Maximum caching for message items.
+             */
             cacheSize: 1000,
+            /**
+             * Message page size in management console.
+             */
             pageSize: 5,
+            /**
+             * true - Upload message item automatically.
+             */
             autoUpload: false,
+            /**
+             * Message upload url. It works if 'autoUpload' = true.
+             */
             uploadUrl: 'messenger_log',
+            /**
+             * The message type that set to 'true' will be uploaded if 'autoUpload' = true.
+             */
             uploadType: {
                 info: true,
                 success: true,
                 warning: true,
                 error: true
             },
-            messageTime: true,
-            messageIcon: true,
-            drawer: true,
+            /**
+             * Show message time for each item.
+             */
+            showTime: true,
+            /**
+             * Show message icon for each item.
+             */
+            showIcon: true,
+            /**
+             * Callback function after message created.
+             * @param {object} message
+             */
             onCreated: function (message) {
             },
+            /**
+             * Callback function after message uploaded to server.
+             * @param {object} message
+             * @param {object} data json object form server side.
+             */
             onUploaded: function (message, data) {
             },
+            /**
+             * Callback function after close a message item, from DOM or desktop notification.
+             * @param {object} message
+             * @param {object} event
+             */
             onClosed: function (message, event) {
             }
         },
@@ -158,7 +230,7 @@ Messenger = (function ($) {
             close: 'c-icon-cancel-circle'
         },
         /**
-         * KeyCode
+         * KeyCode for shortcut operations.
          * @type {{left: number, right: number, home: number, end: number, pageUp: number, pageDown: number}}
          */
             KEY_CODE = {
@@ -168,14 +240,13 @@ Messenger = (function ($) {
             down: 40
         },
         /**
-         *
+         * Self-definition timeout tool that support time freeze and resume functions.
          * @param {function} callback
          * @param {number} delay
          * @private
          */
             Timeout = function (callback, delay) {
             var tick, start, remaining = delay;
-
             this.freeze = function () {
                 clearTimeout(tick);
                 remaining -= new Date() - start;
@@ -186,13 +257,16 @@ Messenger = (function ($) {
                 clearTimeout(tick);
                 tick = setTimeout(callback, remaining);
             };
-
             this.getTick = function () {
                 return tick;
             };
-
             this.resume();
         },
+        /**
+         * Private methods.
+         * @type {{init: Function, i18n: Function, initI18n: Function, getCurItemSize: Function, jQuery2DOM: Function, clearTimeoutQueue: Function, toggleTicks: Function, cacheRemove: Function, cacheRemoveAll: Function, getPageStartIndex: Function, clearStatisticItem: Function, statisticAnalyze: Function, checkBottomLayout: Function, autoHidePopup: Function, switchPosition: Function, togglePopupAndConsole: Function, toggleHandlerBar: Function, paging: {pagePrev: Function, pageNext: Function, pageFirst: Function, pageLast: Function, paginateLabel: Function, registerPaginateKeyEvent: Function}, openConsole: Function, render: {initDefaultUI: Function, msgManager: Function, fillManager: Function, msgPopup: Function, frame: Function, messageBody: Function, handlerBar: Function, toolBar: Function, msgItem: Function, statisticItem: Function, statistic: Function}, registerVisibility: Function, requestPermission: Function, createNotify: Function, combineProperty: Function, getMID: Function, getTimeAsStr: Function, calculateTimeout: Function, convertKeywords: Function, clearHtmlTag: Function, formatMessage: Function, setMessageTimeout: Function, cacheMessage: Function, messagesHandler: Function, createMessage: Function, layoutAction: {slideUp: Function, slideDown: Function}, setLayout: Function, uploadMessage: Function}}
+         * @private
+         */
         _ = {
             /**
              * init plugin basic params.
@@ -206,7 +280,6 @@ Messenger = (function ($) {
                     _.render.initDefaultUI();
                     _.togglePopupAndConsole();
                 }
-
                 return this;
             },
             /**
@@ -215,7 +288,7 @@ Messenger = (function ($) {
              * @returns {string}
              */
             i18n: function (key) {
-                return $.isPlainObject(self.i18n) ? self.i18n[key] || '' : '';
+                return $.isPlainObject(Messenger.i18n) ? Messenger.i18n[key] || '' : '';
             },
             /**
              * Init internationalization lang file.
@@ -238,8 +311,7 @@ Messenger = (function ($) {
                     open: 'Open Message Console'
                 };
 
-                $.isPlainObject(self.i18n) ? $.extend(false, self.i18n, i18n) : self.i18n = i18n;
-
+                $.isPlainObject(Messenger.i18n) ? $.extend(false, Messenger.i18n, i18n) : Messenger.i18n = i18n;
                 return this;
             },
             /**
@@ -371,7 +443,6 @@ Messenger = (function ($) {
                 } else {
                     isBottomLayout = !!wMessenger.filter('[class*="c-msg-layout-bottom"]').length;
                 }
-
                 return isBottomLayout;
             },
             /**
@@ -492,6 +563,9 @@ Messenger = (function ($) {
                     }
                 }
             },
+            /**
+             * Open messenger console dialog.
+             */
             openConsole: function () {
                 _.clearTimeoutQueue();
                 isPopup = false;
@@ -926,14 +1000,14 @@ Messenger = (function ($) {
             },
             /**
              * Intelligent calculate the text length, and give a suitable time for reading.
-             * Legal time: 2000~
+             * Legal time: 3,000~10,000
              * @param {string} [text]
              * @returns {number}
              */
             calculateTimeout: function (text) {
-                var sec = text.length / 50;
-                if (sec < 2) {
-                    sec = 2;
+                var sec = text.length / 30;
+                if (sec < 3) {
+                    sec = 3;
                 } else if (sec > 10) {
                     sec = 10;
                 }
@@ -988,7 +1062,6 @@ Messenger = (function ($) {
                 }
 
                 //Close message in timeout.
-                //millisecond === 0 || millisecond < 2e3 || millisecond > 10e3
                 if (millisecond === 0) {
                     millisecond = _.calculateTimeout(msgObj.text());
                 }
@@ -1034,7 +1107,7 @@ Messenger = (function ($) {
             /**
              * Message create entrance.
              * @param {string} msgType MESSAGE_TYPE.
-             * @param {string|array|jQuery} messages Message
+             * @param {string|Array|jQuery} messages Message
              * @param {object} opt Option setting for a single message.
              */
             messagesHandler: function (msgType, messages, opt) {
@@ -1071,8 +1144,8 @@ Messenger = (function ($) {
                 //:: Create message DOM(jQuery).
                     msgDom = _.render.msgItem(msgObj, MESSAGE_ACTION.close,
                         _.combineProperty(opt.closable, settings.closable),
-                        _.combineProperty(opt.messageIcon, settings.messageIcon),
-                        _.combineProperty(opt.messageTime, settings.messageTime),
+                        _.combineProperty(opt.showIcon, settings.showIcon),
+                        _.combineProperty(opt.showTime, settings.showTime),
                         onClosed).hide(),
 
                 //:: Change append target & Display message on page.
@@ -1091,7 +1164,7 @@ Messenger = (function ($) {
                     //We need to append the new item message to the management body.
                     if (isPopup) {
                         if (!isFreeze) {
-                            if (!_.combineProperty(opt.popupMode, settings.popupMode)) {
+                            if (!_.combineProperty(opt.popupMode, settings.multiple)) {
                                 wMessageBody.empty();
                             }
 
@@ -1125,13 +1198,10 @@ Messenger = (function ($) {
                 if (_.combineProperty(opt.notify, settings.notify) && isPermission && isInactivated) {
                     _.createNotify(msgObj, onClosed);
                 }
-                //----------------------------------------------------------------------
 
                 if ($.isFunction(onCreated)) {
                     onCreated(msgObj);
                 }
-
-                //----------------------------------------------------------------------
 
                 //:: Upload message to server.
                 _.uploadMessage(msgObj);
@@ -1219,32 +1289,69 @@ Messenger = (function ($) {
             }
         },
         /**
-         * Common APIs
-         * @type {{setNotify: Function, setClosable: Function, setCacheSize: Function, setPopupMode: Function, setPopupSize: Function, setLayout: Function, setTarget: Function, setTargetDefault: Function, setWidth: Function, setTimeout: Function, setAutoUpload: Function, setUploadUrl: Function, setUploadType: Function, setHandle: Function, setMessageTime: Function, setMessageIcon: Function, setting: Function, info: Function, error: Function, success: Function, warning: Function, clear: Function, remove: Function, openConsole: Function, closeConsole: Function, getSettings: Function, getMessage: Function, getMessages: Function, getMessagesId: Function, t_togglePopupAndConsole: Function, t_getVars: Function}}
+         * Public APIs
          */
-            api = {
+            exports = {
+            /**
+             * Get setting details.
+             * @returns {{notify: boolean, notifyIconUrl: string, closable: boolean, handle: boolean, multiple: boolean, popupSize: number, layout: string, target: string, width: number, timeout: number, cacheSize: number, pageSize: number, autoUpload: boolean, uploadUrl: string, uploadType: {info: boolean, success: boolean, warning: boolean, error: boolean}, showTime: boolean, showIcon: boolean, onCreated: Function, onUploaded: Function, onClosed: Function}}
+             */
+            getSettings: function () {
+                return settings;
+            },
+            /**
+             * Get single message by message id.
+             * @param {string} mid
+             * @returns {*|{}}
+             */
+            getMessage: function (mid) {
+                return msgCache[mid] || {};
+            },
+            /**
+             * Get all of the message cache.
+             * @returns {{}}
+             */
+            getMessages: function () {
+                return msgCache;
+            },
+            /**
+             * Get all of the message id cache.
+             * @returns {Array}
+             */
+            getMessagesId: function () {
+                return msgIndex;
+            },
             /**
              * Set desktop notification switch.
-             * @param {boolean} enable
-             * @returns {api}
+             * @param {boolean} enable true - Show desktop notification when current page is inactive.
+             * @returns {exports}
              */
             setNotify: function (enable) {
                 settings.notify = !!enable;
                 return this;
             },
             /**
+             * Set the prefix uri for desktop notification icons.
+             * @param {string} url
+             * @returns {exports}
+             */
+            setNotifyIconUrl: function (url) {
+                settings.notifyIconUrl = url;
+                return this;
+            },
+            /**
              * Set message closable button switch.
-             * @param {boolean} enable
-             * @returns {api}
+             * @param {boolean} enable true - Show message closable button switch(At the top right of the message).
+             * @returns {exports}
              */
             setClosable: function (enable) {
                 settings.closable = !!enable;
                 return this;
             },
             /**
-             * Set Cache size.
+             * Set message cache size.
              * @param {number} size
-             * @returns {api}
+             * @returns {exports}
              */
             setCacheSize: function (size) {
                 if (typeof size === 'number') {
@@ -1256,32 +1363,44 @@ Messenger = (function ($) {
                 return this;
             },
             /**
-             * Message popup mode:
-             * true - show some messages(popupSize) at one time. If the number of the message reach popupSize, the last one will be replaced by the new one. All messages will be disappeared when time out.
-             * false - show one message at one time.
-             * @param {boolean} enable
-             * @returns {api}
+             * Set message popup mode.
+             * false - Show a single message at one time.
+             * @param {boolean} enable true - Show messages(popupSize) at one time. If the number of the message reach popupSize, the last one will be replaced by the new one. All messages will be disappeared when time out. false - Show a single message at one time.
+             * @returns {exports}
              */
-            setPopupMode: function (enable) {
-                settings.popupMode = !!enable;
+            setMultiple: function (enable) {
+                settings.multiple = !!enable;
                 return this;
             },
             /**
              * The maximum message number in the popup message box.
              * @param {number} size
-             * @returns {api}
+             * @returns {exports}
              */
             setPopupSize: function (size) {
                 if (!size || size < 1 || size > 50) {
                     size = 5;
+                }
+                settings.popupSize = size;
+                return this;
+            },
+            /**
+             * The maximum message number in the messenger console box.
+             * @param {number} size
+             * @returns {exports}
+             */
+            setPageSize: function (size) {
+                if (!size || size < 1 || size > 50) {
+                    size = 10;
                 }
                 settings.pageSize = size;
                 return this;
             },
             /**
              * Set UI layout.
+             * Layout: top-center/top-left/top-right/bottom-center/bottom-left/bottom-right
              * @param {string} layout
-             * @returns {api}
+             * @returns {exports}
              */
             setLayout: function (layout) {
                 _.setLayout(layout, function (l) {
@@ -1290,9 +1409,9 @@ Messenger = (function ($) {
                 return this;
             },
             /**
-             * Set messenger append target.
+             * Set messenger box append target.
              * @param {string|jQuery|$} target
-             * @returns {api}
+             * @returns {exports}
              */
             setTarget: function (target) {
                 var targetObj = $(target);
@@ -1303,7 +1422,7 @@ Messenger = (function ($) {
             },
             /**
              * Set messenger default append target 'body'.
-             * @returns {api}
+             * @returns {exports}
              */
             setTargetDefault: function () {
                 wMessenger.appendTo('body');
@@ -1311,54 +1430,88 @@ Messenger = (function ($) {
             },
             /**
              * Set the width of the message box.
-             * @param {number|string} width
-             * @returns {api}
+             * @param {number|string} width Number or percentage string will be ok.
+             * @returns {exports}
              */
             setWidth: function (width) {
                 var w = window.outerWidth;
                 wMessenger.width(width);
-
                 if (wMessenger.width() > w) {
                     width = w;
                     wMessenger.width(w);
                 }
-
                 settings.width = width;
                 return this;
             },
+            /**
+             * Set message timeout. This will be override by single message definition.
+             * @param {number} timeout 0 - Auto calculated by system;
+             * @returns {exports}
+             */
             setTimeout: function (timeout) {
                 settings.timeout = timeout;
                 return this;
             },
+            /**
+             * Auto upload message to server after created.
+             * @param {boolean} enable
+             * @returns {exports}
+             */
             setAutoUpload: function (enable) {
                 settings.autoUpload = !!enable;
                 return this;
             },
+            /**
+             * Messenger auto upload url.
+             * @param {string} url
+             * @returns {exports}
+             */
             setUploadUrl: function (url) {
                 settings.uploadUrl = url;
                 return this;
             },
+            /**
+             * Set upload message type that need to.
+             * {info:true, success: true, warning: true, error: true}
+             * @param {object} typeObj
+             * @returns {exports}
+             */
             setUploadType: function (typeObj) {
                 settings.uploadType = $.extend(false, settings.uploadType, typeObj);
                 return this;
             },
+            /**
+             * Set show/hide messenger handle bar switch when mouse hover on.
+             * @param {boolean} enable
+             * @returns {exports}
+             */
             setHandle: function (enable) {
                 settings.handle = !!enable;
                 _.toggleHandlerBar();
                 return this;
             },
+            /**
+             * Set show/hide message time when message created.
+             * @param {boolean} enable
+             * @returns {exports}
+             */
             setMessageTime: function (enable) {
-                settings.messageTime = !!enable;
+                settings.showTime = !!enable;
                 return this;
             },
+            /**
+             * Set show/hide message icon when message created.
+             * @param {boolean} enable
+             * @returns {exports}
+             */
             setMessageIcon: function (enable) {
-                settings.messageIcon = !!enable;
+                settings.showIcon = !!enable;
                 return this;
             },
             /**
              * Override default settings.
              * @param {object} opts
-             * @returns {api}
+             * @returns {exports}
              */
             setting: function (opts) {
                 if ($.isPlainObject(opts)) {
@@ -1395,14 +1548,13 @@ Messenger = (function ($) {
                     //Override the default settings.
                     settings = $.extend(false, settings, opts_);
                 }
-
                 return this;
             },
             /**
              * Show info message.
              * @param {string|jQuery|Array} messages
-             * @param {object} opt
-             * @returns {api}
+             * @param {object} [opt]
+             * @returns {exports}
              */
             info: function (messages, opt) {
                 _.messagesHandler(MESSAGE_TYPE.info, messages, opt);
@@ -1411,8 +1563,8 @@ Messenger = (function ($) {
             /**
              * Show error message.
              * @param {string|jQuery|Array} messages
-             * @param {object} opt
-             * @returns {api}
+             * @param {object} [opt]
+             * @returns {exports}
              */
             error: function (messages, opt) {
                 _.messagesHandler(MESSAGE_TYPE.error, messages, opt);
@@ -1421,8 +1573,8 @@ Messenger = (function ($) {
             /**
              * Show success message.
              * @param {string|jQuery|Array} messages
-             * @param {object} opt
-             * @returns {api}
+             * @param {object} [opt]
+             * @returns {exports}
              */
             success: function (messages, opt) {
                 _.messagesHandler(MESSAGE_TYPE.success, messages, opt);
@@ -1431,8 +1583,8 @@ Messenger = (function ($) {
             /**
              * Show warning message.
              * @param {string|jQuery|Array} messages
-             * @param {object} opt
-             * @returns {api}
+             * @param {object} [opt]
+             * @returns {exports}
              */
             warning: function (messages, opt) {
                 _.messagesHandler(MESSAGE_TYPE.warning, messages, opt);
@@ -1440,11 +1592,11 @@ Messenger = (function ($) {
             },
             /**
              * Clear away popup message.
-             * @returns {api}
+             * @returns {exports}
              */
             clear: function () {
                 _.layoutAction.slideUp(function () {
-                    _.clearTimeout();
+                    _.clearTimeoutQueue();
                     wMessageBody.empty();
                 });
 
@@ -1452,7 +1604,7 @@ Messenger = (function ($) {
             },
             /**
              * Remove all of the cached data, and repaint the ui.
-             * @returns {api}
+             * @returns {exports}
              */
             remove: function () {
                 _.cacheRemoveAll();
@@ -1460,7 +1612,7 @@ Messenger = (function ($) {
             },
             /**
              * Show management dialog.
-             * @returns {api}
+             * @returns {exports}
              */
             openConsole: function () {
                 _.openConsole();
@@ -1468,7 +1620,7 @@ Messenger = (function ($) {
             },
             /**
              * Close management dialog.
-             * @returns {api}
+             * @returns {exports}
              */
             closeConsole: function () {
                 _.layoutAction.slideUp();
@@ -1482,40 +1634,12 @@ Messenger = (function ($) {
                 _.togglePopupAndConsole();
                 wMessageBody.empty();
                 return this;
-            },
-            /**
-             * Get details settings.
-             * @returns {{notify: boolean, notifyIconUrl: string, closable: boolean, handle: boolean, popupMode: boolean, popupSize: number, layout: string, target: string, width: number, timeout: number, cacheSize: number, pageSize: number, autoUpload: boolean, uploadUrl: string, uploadType: {info: boolean, success: boolean, warning: boolean, error: boolean}, messageTime: boolean, messageIcon: boolean, drawer: boolean, onCreated: Function, onUploaded: Function, onClosed: Function}}
-             */
-            getSettings: function () {
-                return settings;
-            },
-            /**
-             * Get single message by message id.
-             * @param {string} mid
-             * @returns {*|{}}
-             */
-            getMessage: function (mid) {
-                return msgCache[mid] || {};
-            },
-            /**
-             * Get all of the message cache.
-             * @returns {{}}
-             */
-            getMessages: function () {
-                return msgCache;
-            },
-            /**
-             * Get all of the message id cache.
-             * @returns {Array}
-             */
-            getMessagesId: function () {
-                return msgIndex;
             }
         };
 
-    $(document).ready(function(){
+    $(function () {
         _.init();
     });
-    return api;
-})($ || jQuery);
+
+    $.extend(Messenger, exports);
+})(jQuery);
